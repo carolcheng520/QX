@@ -1,4 +1,2 @@
 # QX
-Rewrite and Reject Rule for QX. 
-
-Just for own use.
+Rewrite and reject Rule for QX. 
