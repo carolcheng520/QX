@@ -1,0 +1,19 @@
+# > 微信小程序去广告通用规则
+DOMAIN, wxsnsdy.wxs.qq.com, REJECT
+DOMAIN, wxsmsdy.video.qq.com, REJECT
+DOMAIN, wxsnsdythumb.wxs.qq.com, REJECT
+
+# > 收钱吧 - 买单小程序去广告
+DOMAIN, ads-shopping.shouqianba.com, REJECT
+
+# > Lanjie100.com
+host, ntb.lanjie100.com, REJECT
+
+# > 贴吧屏蔽域名dns查询
+ip-cidr, 180.76.76.200/32, REJECT
+
+# > B站自动换区
+ip-cidr, 203.107.1.1/24, REJECT
+
+# > 广发银行 - 内页广告
+URL-REGEX, ^http:\/\/mps\.95508\.com\/mps\/icppweb\/images\/mps\/migration\/mpspics\/, REJECT
