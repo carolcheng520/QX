@@ -5,7 +5,7 @@
 # NOTE: Generated locally in browser; proxy-container traffic is attributed conservatively.
 # RULES: 10
 
-name = Apple.podcasts
+name = Apple Podcast
 2, amp-api.media.apple.com
 2, amp-api.podcasts.apple.com
 2, bag.itunes.apple.com
