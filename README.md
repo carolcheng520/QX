@@ -1,2 +1,2 @@
-# QX
-Rewrite and reject Rule for QX. 
+#  Podcast list
+Rule for Apple Podcast. 
