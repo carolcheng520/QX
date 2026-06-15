@@ -1,0 +1,31 @@
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/10086.arrs
+# SUGGESTED-ACTION: DIRECT
+# RULES: 26
+
+name = 10086
+2, 10086.online-cmcc.cn
+2, activity.cmcc-cs.cn
+2, mcloud.139.com
+2, yun.139.com
+2, coc.10086.cn
+2, app.10086.cn
+2, app.log.nf.migu.cn
+2, app.online-cmcc.cn
+2, musicapp.migu.cn
+2, clientaccess.10086.cn
+2, datacenter.mail.10086.cn
+2, g.alicdn.com
+2, login.10086.cn
+2, mca.cmpay.com
+2, mtm.online-cmcc.cn
+2, p.10086.cn
+2, pay.shop.10086.cn
+2, push.it.10086.cn
+2, qwhdcdn.cmcc-cs.cn
+2, touch.10086.cn
+2, upc.zztfly.com
+2, vsbo.caiyun.feixin.10086.cn
+2, www.cmpay.com
+2, wx.10086.cn
+2, xcxp.bj.10086.cn
+2, xcxpn.bmcc.com.cn
