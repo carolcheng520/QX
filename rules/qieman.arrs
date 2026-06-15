@@ -1,0 +1,10 @@
+# GENERATED-FOR: Anywhere Routing Rule Set
+# SOURCE: iOS App Privacy Report
+# UPDATED-AT: 2026-06-15T13:58:00+08:00
+# BUNDLE-ID: qieman
+# NOTE: Generated locally in browser; proxy-container traffic is attributed conservatively.
+# SUGGESTED-ACTION: DIRECT
+# RULES: 1
+
+name = qieman
+2, qieman.com

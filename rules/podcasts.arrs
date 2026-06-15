@@ -1,0 +1,11 @@
+# UPDATED-AT: 2026-06-15T13:58:00+08:00
+# BUNDLE-ID: Apple Podcast
+# SUGGESTED-ACTION: Proxy
+# RULES: 5
+
+name = Apple Podcast
+2, amp-api.podcasts.apple.com
+2, amp-api.media.apple.com
+2, bag.itunes.apple.com
+2, bookkeeper.itunes.apple.com
+2, play.itunes.apple.com
