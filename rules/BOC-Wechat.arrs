@@ -1,14 +1,7 @@
-# GENERATED-FOR: Anywhere Routing Rule Set
-# SOURCE: merged from iOS App Privacy Report exports
-# GENERATED-AT: 2026-06-15T14:47:06+08:00
-# SOURCE-FILES: com.boc.tesip.arrs, com.boc.BOCWECHAT.arrs, 微信.arrs
-# CLEANED-AGAINST: https://raw.githubusercontent.com/chikacya/anywhere-rules/refs/heads/main/rules/common/WeChat.arrs
-# OPTIMIZED-AT: 2026-06-15T14:56:15+08:00
-# OPTIMIZATION: Removed P0/P1 noisy IPs, P3 monitoring hosts, and P4 non-core Apple/AutoNavi hosts.
 # SUGGESTED-ACTION: DIRECT
 # RULES: 44
 
-name = BOC WeChat Direct
+name = BOC WeChat
 0, 112.31.11.95
 1, 2409:8731:21f:30:109::109
 2, byod.semm.bank-of-china.com
