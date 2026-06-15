@@ -1,2 +1,2 @@
-#  Podcast list
-Rule for Apple Podcast. 
+# Rule sets
+.arrs and .amrs files. 
