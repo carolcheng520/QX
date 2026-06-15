@@ -6,6 +6,9 @@ Personal Anywhere rule sets.
 
 - Apple Podcasts: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/podcasts.arrs
   Suggested action: Proxy.
+- BOC WeChat Direct: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/BOC-Wechat.arrs
+  Suggested action: DIRECT.
+  Notes: Bank of China and WeChat Work companion direct rules, cleaned against the common WeChat rule set and optimized to remove noisy captured IPs.
 - Qieman: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/qieman.arrs
   Suggested action: DIRECT.
 
