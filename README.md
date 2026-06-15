@@ -13,4 +13,6 @@ Personal Anywhere rule sets.
 
 Place `.amrs` files in `mitm/`. If a MITM rule needs a matching reject routing rule, keep that related `.arrs` file in `mitm/` as well.
 
+- CamScanner Unlock: https://raw.githubusercontent.com/carolcheng520/anyrule/main/mitm/CamScannerUnlock.amrs
+  No reject routing rule required.
 - iTunes Series Unlock: https://raw.githubusercontent.com/carolcheng520/anyrule/main/mitm/iTunesUnlock.amrs
