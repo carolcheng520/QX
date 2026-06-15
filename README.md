@@ -1,3 +1,3 @@
 # AnyRule
 
-Personal Anywhere rule sets.
+Personal rule sets.
