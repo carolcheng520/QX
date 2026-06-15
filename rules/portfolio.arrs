@@ -1,0 +1,33 @@
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/portfolio.arrs
+# SUGGESTED-ACTION: DIRECT
+# RULES: 28
+
+name = portfolio
+2, access1.tpns.tencent.com
+2, au.qq.com
+2, bisheng.tenpay.com
+2, content.rconfig.qq.com
+2, dlied5.qq.com
+2, file.finance.qq.com
+2, inews.gtimg.com
+2, js.aq.qq.com
+2, license.vod2.myqcloud.com
+2, pic.finance.qq.com
+2, proxy.finance.qq.com
+2, qt.gtimg.cn
+2, rdelivery.qq.com
+2, snowflake.qq.com
+2, snp.tenpay.com
+2, snpimg.gtimg.com
+2, sqt.gtimg.cn
+2, st.gtimg.com
+2, szmg.qq.com
+2, tencent-stock.com
+2, tmfmazu.m.qq.com
+2, vv.video.qq.com
+2, wzq.gjzq.com.cn
+2, wzq.gtimg.com
+2, wzq.tenpay.com
+2, wzqcf.gtimg.com
+2, zqact.tenpay.com
+2, txfund.com

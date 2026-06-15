@@ -1,6 +1,9 @@
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/qieman.arrs
 # SUGGESTED-ACTION: DIRECT
-# RULES: 1
+# RULES: 4
 
 name = qieman
 2, qieman.com
+2, youzhiyouxing.cn
+2, api.youzhiyouxing.com
+2, etax.chinatax.gov.cn

@@ -1,0 +1,14 @@
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/jsfund.arrs
+# SUGGESTED-ACTION: DIRECT
+# RULES: 9
+
+name = jsfund
+0, 1.94.190.95
+0, 118.102.22.78
+2, jsfund.cn
+2, jpush.cn
+2, tcb.qcloud.la
+2, beian.mps.gov.cn
+2, id6.me
+2, cmpassport.com
+2, smartop-sdkapi.jiguang.cn

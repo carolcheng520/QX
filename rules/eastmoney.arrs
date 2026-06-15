@@ -1,0 +1,40 @@
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/eastmoney.arrs
+# SUGGESTED-ACTION: DIRECT
+# RULES: 35
+
+name = eastmoney
+2, 1234567.com.cn
+2, 18.cn
+2, 18.com.cn
+2, 95021.com
+2, caifutong.com.cn
+2, caimi.cn
+2, caimi.com.cn
+2, dfcfs.cn
+2, dfcfs.com
+2, dfcfw.com
+2, dingqibao.cn
+2, dingqibao.com
+2, dingqibao.com.cn
+2, dongfanglicaishi.com
+2, eastmoney.com
+2, eastmoneyfutures.com
+2, emsec.hk
+2, guba.com.cn
+2, haitunzhibo.com
+2, huoqibao.cn
+2, huoqibao.com
+2, huoqibao.com.cn
+2, langke.tv
+2, samacn.org.cn
+2, tiantianfunds.cn
+2, tiantianfunds.com
+2, activity.tiantianfunds.com.cn
+2, txjhqh.com
+2, uufund.cn
+2, uufund.com
+2, xzsec.com
+2, zhaiba.com
+2, zhongcaisuo.cn
+2, zhongcaisuo.com
+2, zhongcaisuo.com.cn
