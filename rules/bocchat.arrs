@@ -1,8 +1,8 @@
-# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/BOC-Wechat.arrs
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/bocchat.arrs
 # SUGGESTED-ACTION: DIRECT
 # RULES: 44
 
-name = BOC WeChat
+name = bocchat
 0, 112.31.11.95
 1, 2409:8731:21f:30:109::109
 2, byod.semm.bank-of-china.com
