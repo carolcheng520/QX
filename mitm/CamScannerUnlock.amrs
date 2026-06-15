@@ -1,8 +1,6 @@
-# CamScanner unlock - Anywhere MITM RuleSet
-# SOURCE-PLUGIN: https://raw.githubusercontent.com/deezertidal/private/master/plugallery/CamScanner.plugin
-# SOURCE-SCRIPT: https://raw.githubusercontent.com/NobyDa/Script/master/Surge/JS/CamScanner.js
-# UPDATED-AT: 2026-06-15T14:25:41+08:00
-# NOTE: Converted from a Surge/Loon response script. No reject routing rule is required.
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/mitm/CamScannerUnlock.amrs
+# SUGGESTED-ACTION: Enable MITM
+# RULES: 1
 
 name = CamScanner Unlock
 hostname = api.intsig.net, api-cs.intsig.net
