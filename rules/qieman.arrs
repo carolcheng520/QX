@@ -1,10 +1,12 @@
-# PURPOSE: Direct routing rules for Qieman, Youzhiyouxing, and related tax service domains.
+# PURPOSE: Direct fallback rules for Qieman, Youzhiyouxing, and related service domains.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/qieman.arrs
 # SUGGESTED-ACTION: DIRECT
-# RULES: 4
+# RULES: 6
 
 name = qieman
 2, qieman.com
 2, youzhiyouxing.cn
 2, api.youzhiyouxing.com
 2, etax.chinatax.gov.cn
+2, juyoufuli.com
+2, memberv5.imixpark.com

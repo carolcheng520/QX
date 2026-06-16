@@ -1,49 +1,18 @@
 # PURPOSE: Direct routing rules for Bank of China chat, enterprise mobile, and required support services.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/bocchat.arrs
 # SUGGESTED-ACTION: DIRECT
-# RULES: 44
+# RULES: 13
 
 name = bocchat
-0, 112.31.11.95
-1, 2409:8731:21f:30:109::109
 2, byod.semm.bank-of-china.com
 2, cdn1.emm.bank-of-china.com
 2, iisp-oidea.mbs.boc.cn
-0, 111.31.205.35
-0, 111.33.189.142
-0, 111.57.193.238
-0, 117.144.227.219
-0, 117.144.227.253
-0, 119.29.29.92
-0, 119.29.29.98
-0, 182.254.116.117
-0, 220.248.249.59
-0, 223.244.91.59
-0, 36.102.224.238
 2, down-30005.sz.gfp.tencent-cloud.com
 2, down.qq.com
 2, imp.bank-of-china.com
 2, msp.imp.bank-of-china.com
 2, shortconn.im.qcloud.com
 2, sso.msp.imp.bank-of-china.com
-0, 36.150.103.132
-0, 36.158.240.16
-1, 2402:4e00:c020:1900::b
-1, 2402:4e00:c023:ff00::14
-1, 2409:8a1a:6501:339:30eb:b975:c807:fad5
-1, 2409:8c02:11c:76:25::
-1, 2409:8c02:11c:76:2d::
-1, 2409:8c1e:75b0:4004::12c
-1, 2409:8c1e:75b0:4006::11e
-1, 2409:8c1e:75b0:4007::34
-1, 2409:8c1e:75b0:78::d1
-1, 2409:8c20:818:2007::b3
-1, 2409:8c20:818:2007::f8
-1, 2409:8c20:818:2015::fd
-1, 2409:8c20:818:3002::c
-1, 2409:8c20:818:3012::fa
-1, 2409:8c78:100:62::212
-1, 240e:f7:7c00:800:0:9:0:3
 2, cdn1.fuxing1.boc.cn
 2, dldir1v6.qq.com
 2, dns.weixin.qq.com.cn
