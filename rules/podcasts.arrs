@@ -1,3 +1,4 @@
+# PURPOSE: Proxy routing rules for Apple Podcasts API and playback service domains.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/podcasts.arrs
 # SUGGESTED-ACTION: Proxy
 # RULES: 5
