@@ -1,0 +1,16 @@
+# PURPOSE: Direct routing rules for finance apps and required identity, push, and platform services.
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/finance-apps.arrs
+# SUGGESTED-ACTION: DIRECT
+# RULES: 10
+
+name = finance-apps
+2, jsfund.cn
+2, touker.com
+2, cnhbstock.com
+2, jpush.cn
+2, smartop-sdkapi.jiguang.cn
+2, tcb.qcloud.la
+2, beian.mps.gov.cn
+2, id6.me
+2, cmpassport.com
+2, cfgc.zztfly.com
