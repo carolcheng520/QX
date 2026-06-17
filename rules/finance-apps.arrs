@@ -1,5 +1,6 @@
 # PURPOSE: Direct routing rules for finance apps and required identity, push, and platform services.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/finance-apps.arrs
+# LAST-UPDATED: 2026-06-17
 # SUGGESTED-ACTION: DIRECT
 # RULES: 10
 

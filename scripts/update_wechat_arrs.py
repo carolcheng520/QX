@@ -8,6 +8,7 @@ import re
 import sys
 import urllib.request
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 
@@ -107,6 +108,7 @@ def render_rules(rules: list[tuple[str, str]]) -> str:
     return (
         "# PURPOSE: Direct routing rules for WeChat core domains and IP ranges.\n"
         f"# LINK: {RAW_LINK}\n"
+        f"# LAST-UPDATED: {date.today().isoformat()}\n"
         "# SUGGESTED-ACTION: DIRECT\n"
         f"# RULES: {len(rules)}\n"
         "\n"

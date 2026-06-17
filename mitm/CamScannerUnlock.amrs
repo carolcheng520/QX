@@ -1,5 +1,6 @@
 # PURPOSE: MITM response rule for CamScanner purchase property responses.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/mitm/CamScannerUnlock.amrs
+# LAST-UPDATED: 2026-06-17
 # SUGGESTED-ACTION: Enable MITM
 # RULES: 1
 # COMPANION-FILES: None; this MITM rule is standalone, but Anywhere MITM must be enabled for the listed hostnames.

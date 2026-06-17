@@ -1,5 +1,6 @@
 # PURPOSE: Direct routing rules for WeChat core domains and IP ranges.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/wechat.arrs
+# LAST-UPDATED: 2026-06-17
 # SUGGESTED-ACTION: DIRECT
 # RULES: 96
 
