@@ -3,7 +3,7 @@
 # LAST-UPDATED: 2026-06-18
 # SUGGESTED-ACTION: Enable MITM
 # RULES: 2
-# COMPANION-FILES: Use with rules/wechat-ads.arrs assigned to REJECT for wxs.qq.com ad domains.
+# COMPANION-FILES: Use with rules/wechat-ads.arrs assigned to REJECT for selected wxs.qq.com ad subdomains.
 
 name = WeChat Ads
 hostname = mp.weixin.qq.com

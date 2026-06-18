@@ -2,7 +2,11 @@
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/wechat-ads.arrs
 # LAST-UPDATED: 2026-06-18
 # SUGGESTED-ACTION: REJECT
-# RULES: 1
+# RULES: 5
 
 name = WeChat Ads Reject
-2, wxs.qq.com
+2, wxa.wxs.qq.com
+2, wximg.wxs.qq.com
+2, wxsmw.wxs.qq.com
+2, wxsnsdy.wxs.qq.com
+2, wxsnsdythumb.wxs.qq.com
