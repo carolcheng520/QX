@@ -8,5 +8,5 @@
 name = WeChat Ads
 hostname = mp.weixin.qq.com
 
-0, 0, ^https://mp\.weixin\.qq\.com/mp/(?:cps_product_info|getappmsgad|jsmonitor|masonryfeed|relatedarticle)\?, 4, e30=
-0, 0, ^https://mp\.weixin\.qq\.com/mp/relatedsearchword, 4, e30=
+0, 0, ^https://mp\.weixin\.qq\.com/mp/(?:cps_product_info|getappmsgad|jsmonitor|masonryfeed|relatedarticle)(?:\?|$), 4, e30=
+0, 0, ^https://mp\.weixin\.qq\.com/mp/relatedsearchword(?:\?|$), 4, e30=
