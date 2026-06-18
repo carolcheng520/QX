@@ -1,0 +1,8 @@
+# PURPOSE: Reject routing rules for WeChat advertising domains.
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/wechat-ads.arrs
+# LAST-UPDATED: 2026-06-18
+# SUGGESTED-ACTION: REJECT
+# RULES: 1
+
+name = WeChat Ads Reject
+2, wxs.qq.com

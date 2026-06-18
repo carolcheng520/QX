@@ -1,0 +1,12 @@
+# PURPOSE: MITM request reject rules for WeChat public account ad endpoints.
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/mitm/WeChatAds.amrs
+# LAST-UPDATED: 2026-06-18
+# SUGGESTED-ACTION: Enable MITM
+# RULES: 2
+# COMPANION-FILES: Use with rules/wechat-ads.arrs assigned to REJECT for wxs.qq.com ad domains.
+
+name = WeChat Ads
+hostname = mp.weixin.qq.com, wxa.wxs.qq.com, wximg.wxs.qq.com, wxsmw.wxs.qq.com
+
+0, 0, ^https://mp\.weixin\.qq\.com/mp/(?:cps_product_info|getappmsgad|jsmonitor|masonryfeed|relatedarticle)\?, 4, e30=
+0, 0, ^https://mp\.weixin\.qq\.com/mp/relatedsearchword, 4, e30=
