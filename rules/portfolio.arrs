@@ -1,8 +1,8 @@
 # PURPOSE: Direct routing rules for Tencent portfolio, market data, fund, and related finance services.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/portfolio.arrs
-# LAST-UPDATED: 2026-06-17
+# LAST-UPDATED: 2026-06-19
 # SUGGESTED-ACTION: DIRECT
-# RULES: 24
+# RULES: 23
 
 name = portfolio
 2, access1.tpns.tencent.com
@@ -17,7 +17,6 @@ name = portfolio
 2, proxy.finance.qq.com
 2, qt.gtimg.cn
 2, rdelivery.qq.com
-2, snowflake.qq.com
 2, snpimg.gtimg.com
 2, sqt.gtimg.cn
 2, st.gtimg.com
