@@ -1,11 +1,12 @@
 # PURPOSE: Direct routing rules for WeChat core domains and IP ranges.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/wechat.arrs
-# LAST-UPDATED: 2026-06-17
+# LAST-UPDATED: 2026-06-20
 # SUGGESTED-ACTION: DIRECT
-# RULES: 96
+# RULES: 99
 
 name = WeChat
 2, apd-pcdnwxlogin.teg.tencent-cloud.net
+2, btrace.qq.com
 2, dldir1.qq.com
 2, slife.xy-asia.com
 2, soup.v.qq.com
@@ -84,6 +85,7 @@ name = WeChat
 1, 240e:928:1400:10::/112
 1, 240e:93c:8:10::/60
 1, 240e:95c:2003:20::/60
+1, 240e:95c:3003:10::/60
 1, 240e:965:802:620::/60
 1, 240e:96c:6400:700::/60
 1, 240e:97c:18:601::/64
@@ -99,5 +101,6 @@ name = WeChat
 1, 240e:e9:6003::/48
 1, 240e:f7:4f00:1f10::/60
 1, 240e:f7:a070:100::/60
+1, 240e:f7:a070:400::/60
 1, 240e:ff:9018:100::/60
 1, 240e:ff:f100::/44
