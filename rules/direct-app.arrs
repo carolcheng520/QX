@@ -1,0 +1,17 @@
+# PURPOSE: Supplemental direct routing rules for app-specific service domains not covered by broader direct rule sets.
+# LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/direct-app.arrs
+# LAST-UPDATED: 2026-06-25
+# SUGGESTED-ACTION: DIRECT
+# RULES: 10
+
+name = Direct Supplements
+2, qieman.com
+2, zhiketong.com
+2, youzhiyouxing.cn
+2, api.youzhiyouxing.com
+2, etax.chinatax.gov.cn
+2, juyoufuli.com
+2, memberv5.imixpark.com
+2, fuxing360.com
+2, fuxing360.net
+2, hcare360.com
