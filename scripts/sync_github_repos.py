@@ -10,6 +10,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 
 MAIN_BRANCH = "main"
@@ -39,15 +40,19 @@ def format_git_error(result: subprocess.CompletedProcess[str]) -> str:
 
 
 def run_git(repo: RepoSpec, args: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        ["git", *args],
-        cwd=repo.path,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo.path,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise SyncError(f"{repo.name}: unable to run git {' '.join(args)} in {repo.path}: {exc}") from exc
+
     if check and result.returncode != 0:
-        details = format_git_error(result)
+        details = format_git_error(result) or f"exit code {result.returncode}"
         raise SyncError(f"{repo.name}: git {' '.join(args)} failed: {details}")
     return result
 
@@ -115,6 +120,11 @@ def build_sync_plan(repo: RepoSpec) -> SyncPlan:
 
 
 def apply_plan(plan: SyncPlan) -> str:
+    current_sha = run_git(plan.repo, ["rev-parse", "--short=12", "HEAD"]).stdout.strip()
+    if current_sha != plan.old_sha:
+        raise SyncError(f"{plan.repo.name}: HEAD changed during sync planning: {plan.old_sha} -> {current_sha}")
+    require_clean_worktree(plan.repo)
+
     if plan.behind == 0:
         return f"{plan.repo.name}: already up to date ({plan.old_sha})"
 
@@ -163,7 +173,7 @@ def run_sync(repos: list[RepoSpec]) -> int:
             fetch_errors.append(str(exc))
 
     if fetch_errors:
-        print("Sync blocked after fetch; no repository HEADs were updated.", file=sys.stderr)
+        print("Sync blocked after fetch; no repository HEADs were updated by this run.", file=sys.stderr)
         for error in fetch_errors:
             print(f"- {error}", file=sys.stderr)
         return 1
@@ -200,7 +210,7 @@ def configure_fixture_user(path: Path) -> None:
     run_fixture_git(path, ["config", "user.email", "sync-script-test@example.com"])
 
 
-def assert_raises(message: str, fn) -> None:
+def assert_raises(message: str, fn: Callable[[], object]) -> None:
     try:
         fn()
     except SyncError as exc:
@@ -252,6 +262,15 @@ def run_self_test() -> int:
         run_fixture_git(local, ["commit", "-am", "local"])
         assert_raises("local branch has", lambda: build_sync_plan(repo))
         print("self-test local-ahead block: ok")
+
+        (seed / "file.txt").write_text("remote\n", encoding="utf-8")
+        run_fixture_git(seed, ["commit", "-am", "remote"])
+        run_fixture_git(seed, ["push", "origin", MAIN_BRANCH])
+        assert_raises("local branch has", lambda: build_sync_plan(repo))
+        ahead, behind = parse_counts(repo)
+        if ahead <= 0 or behind <= 0:
+            raise SyncError(f"fixture: expected diverged history, got ahead={ahead} behind={behind}")
+        print("self-test diverged-history block: ok")
 
         wrong_origin = RepoSpec("fixture", local, "https://example.invalid/repo.git")
         assert_raises("expected origin", lambda: validate_local_repo(wrong_origin))
