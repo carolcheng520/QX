@@ -6,8 +6,10 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +27,8 @@ SKILL_FILES = {
     "skill/anyrule-maintainer/scripts/run_anyrule_maintenance.py",
 }
 ABSOLUTE_PATH_RE = re.compile("/" + "Users" + r"/[^\s`'\"]+")
+ROOT_OVERRIDE_ENV = "ANYRULE_MAINTAINER_ROOT"
+ISOLATED_CHILD_ENV = "ANYRULE_MAINTAINER_ISOLATED_CHILD"
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,9 @@ class MaintenanceError(Exception):
 
 
 def anyrule_root() -> Path:
+    root_override = os.environ.get(ROOT_OVERRIDE_ENV)
+    if root_override:
+        return Path(root_override).expanduser().resolve()
     return Path(__file__).resolve().parents[3]
 
 
@@ -72,6 +79,14 @@ def git(repo: RepoSpec, args: list[str]) -> str:
     return run(["git", *args], repo.path).stdout.strip()
 
 
+def git_quiet(repo: RepoSpec, args: list[str]) -> subprocess.CompletedProcess[str]:
+    return run_quiet(["git", *args], repo.path)
+
+
+def short_ref(repo: RepoSpec, ref: str) -> str:
+    return git(repo, ["rev-parse", "--short=12", ref])
+
+
 def ensure_repo_shape(repo: RepoSpec) -> None:
     if not repo.path.is_dir():
         raise MaintenanceError(f"{repo.name}: missing repository directory: {repo.path}")
@@ -93,7 +108,7 @@ def status_paths(repo: RepoSpec) -> set[str]:
     output = git(repo, ["status", "--porcelain"])
     paths: set[str] = set()
     for line in output.splitlines():
-        path = line[3:]
+        path = line[3:] if len(line) > 3 and line[2] == " " else line[2:].lstrip()
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         paths.add(path)
@@ -119,9 +134,28 @@ def divergence(repo: RepoSpec) -> tuple[int, int]:
 def require_sync_state(repo: RepoSpec) -> None:
     ahead, behind = divergence(repo)
     if ahead:
-        raise MaintenanceError(f"{repo.name}: local branch has {ahead} unpushed commit(s)")
+        raise MaintenanceError(describe_divergence(repo, ahead, behind))
     if behind and not repo.allow_behind:
         raise MaintenanceError(f"{repo.name}: local branch is {behind} commit(s) behind origin/{MAIN_BRANCH}")
+
+
+def describe_divergence(repo: RepoSpec, ahead: int, behind: int) -> str:
+    local_sha = short_ref(repo, "HEAD")
+    remote_sha = short_ref(repo, f"origin/{MAIN_BRANCH}")
+    merge_base = git_quiet(repo, ["merge-base", "HEAD", f"origin/{MAIN_BRANCH}"])
+
+    if ahead > 0 and behind > 0:
+        if merge_base.returncode == 0:
+            reason = f"local and origin/{MAIN_BRANCH} diverged after merge base {merge_base.stdout.strip()[:12]}"
+        else:
+            reason = f"local and origin/{MAIN_BRANCH} have no merge base; upstream was likely force-updated or replaced"
+    else:
+        reason = f"local branch has {ahead} commit(s) not on origin/{MAIN_BRANCH}"
+
+    return (
+        f"{repo.name}: {reason}; local HEAD={local_sha}, "
+        f"origin/{MAIN_BRANCH}={remote_sha}, ahead={ahead}, behind={behind}; manual handling required"
+    )
 
 
 def validate_environment(repos: list[RepoSpec]) -> None:
@@ -135,6 +169,74 @@ def run_preflight_tests(root: Path) -> None:
     run(["python3", "scripts/test_update_wechat_arrs.py"], root)
     run(["python3", "scripts/test_generate_cn_direct_enhancements.py"], root)
     run(["python3", "scripts/sync_github_repos.py", "--self-test"], root)
+
+
+def run_child_script(cmd: list[str], cwd: Path, env: dict[str, str]) -> None:
+    print(f"$ {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=cwd, env=env, text=True, capture_output=True, check=False)
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    if result.returncode != 0:
+        raise MaintenanceError(f"{cwd}: {' '.join(cmd)} failed with exit code {result.returncode}")
+
+
+def maybe_fast_forward_original_anyrule(root: Path) -> None:
+    repo = RepoSpec("anyrule", root, "git@github.com:carolcheng520/anyrule.git")
+    try:
+        ensure_repo_shape(repo)
+        git(repo, ["fetch", "origin", MAIN_BRANCH])
+        paths = status_paths(repo)
+        if paths:
+            preview = "\n".join(f"- {path}" for path in sorted(paths))
+            print(f"anyrule: original checkout was not fast-forwarded because it is not clean:\n{preview}")
+            return
+
+        ahead, behind = divergence(repo)
+        if ahead:
+            print(f"anyrule: original checkout was not fast-forwarded: {describe_divergence(repo, ahead, behind)}")
+            return
+        if not behind:
+            print("anyrule: original checkout is already in sync.")
+            return
+
+        git(repo, ["merge", "--ff-only", f"origin/{MAIN_BRANCH}"])
+        verify_remote_head(repo)
+    except MaintenanceError as exc:
+        print(f"anyrule: original checkout fast-forward skipped: {exc}", file=sys.stderr)
+
+
+def clone_isolated_repos(root: Path, isolated_parent: Path) -> Path:
+    isolated_anyrule = isolated_parent / "anyrule"
+    for repo in repo_specs(root):
+        target = isolated_parent / repo.path.name
+        run(["git", "clone", repo.origin_url, str(target)], isolated_parent)
+    return isolated_anyrule
+
+
+def run_isolated_workflow(root: Path, check_only: bool) -> None:
+    if os.environ.get(ISOLATED_CHILD_ENV):
+        raise MaintenanceError("--isolated cannot be used inside an isolated child run")
+
+    isolated_parent = Path(tempfile.mkdtemp(prefix="anyrule-maintainer-", dir="/private/tmp"))
+    cleanup = False
+    print(f"isolated workspace: {isolated_parent}")
+    try:
+        isolated_anyrule = clone_isolated_repos(root, isolated_parent)
+        env = os.environ.copy()
+        env[ROOT_OVERRIDE_ENV] = str(isolated_anyrule)
+        env[ISOLATED_CHILD_ENV] = "1"
+        child_args = ["--check-only"] if check_only else []
+        run_child_script([sys.executable, str(Path(__file__).resolve()), *child_args], isolated_anyrule, env)
+        if not check_only:
+            maybe_fast_forward_original_anyrule(root)
+        cleanup = True
+    finally:
+        if cleanup:
+            shutil.rmtree(isolated_parent)
+        else:
+            print(f"isolated workspace retained for inspection: {isolated_parent}", file=sys.stderr)
 
 
 def codex_skills_dir() -> Path:
@@ -310,6 +412,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="validate repositories and tests without generating, committing, or pushing rule updates",
     )
+    parser.add_argument(
+        "--isolated",
+        action="store_true",
+        help="run against fresh temporary clones so local sibling mirror divergence cannot block rule maintenance",
+    )
     return parser.parse_args()
 
 
@@ -320,10 +427,16 @@ def main() -> int:
 
     try:
         if args.adversarial_check:
+            if args.isolated:
+                raise MaintenanceError("--isolated cannot be combined with --adversarial-check")
             failures = adversarial_check(root)
             if failures:
                 raise MaintenanceError(f"adversarial check found {failures} issue(s)")
             print("Adversarial check passed.")
+            return 0
+        if args.isolated:
+            run_isolated_workflow(root, check_only=args.check_only)
+            print("AnyRule isolated maintenance completed successfully.")
             return 0
         validate_environment(repos)
         run_preflight_tests(root)

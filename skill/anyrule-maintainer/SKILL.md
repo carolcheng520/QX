@@ -31,6 +31,12 @@ For a non-mutating environment check, use:
 python3 skill/anyrule-maintainer/scripts/run_anyrule_maintenance.py --check-only
 ```
 
+If a local upstream mirror such as `Anywhere` has diverged from GitHub and the goal is still to maintain/publish `anyrule`, run the same workflow in fresh temporary clones:
+
+```bash
+python3 skill/anyrule-maintainer/scripts/run_anyrule_maintenance.py --isolated
+```
+
 For a non-mutating adversarial review of the skill packaging and portability assumptions, use:
 
 ```bash
@@ -45,6 +51,15 @@ The workflow is intentionally strict:
 - Sync the sibling repositories with `scripts/sync_github_repos.py`.
 - Generate CN direct enhancement rules, push them, and verify GitHub `main` equals local `HEAD`.
 - Treat no-op generation as success when the worktree and remote are already in sync.
+- Use `--isolated` when a disposable upstream mirror is diverged but should not block rule maintenance.
+
+If a sibling mirror is clean and intentionally disposable, it can be reset to GitHub `main` explicitly:
+
+```bash
+python3 scripts/sync_github_repos.py --reset-diverged-clean
+```
+
+This reset mode is opt-in. The default sync still blocks on local-ahead or diverged history.
 
 ## First-Run Lessons
 
@@ -54,6 +69,7 @@ Keep these checks in mind after editing or cloning this skill:
 - The installer should create `${CODEX_HOME:-$HOME/.codex}/skills/anyrule-maintainer` as a symlink to the repo-local skill; restart Codex if the skill list was already loaded.
 - `--check-only` intentionally fails while the new `skill/` files are untracked or otherwise dirty. Commit and push the skill before using the live maintenance workflow.
 - After cloning on another machine, run the installer once before expecting `$anyrule-maintainer` to trigger automatically.
+- When Git reports both ahead and behind counts for an upstream mirror, inspect the diagnostic output before resetting. A `no merge base` message usually means GitHub history was force-updated or replaced.
 
 ## Adversarial Review
 

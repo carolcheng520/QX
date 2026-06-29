@@ -29,6 +29,7 @@ class SyncPlan:
     ahead: int
     behind: int
     old_sha: str
+    reset_to_origin: bool = False
 
 
 class SyncError(Exception):
@@ -78,6 +79,36 @@ def parse_counts(repo: RepoSpec) -> tuple[int, int]:
         raise SyncError(f"{repo.name}: invalid rev-list output: {output}") from exc
 
 
+def short_ref(repo: RepoSpec, ref: str) -> str:
+    return run_git(repo, ["rev-parse", "--short=12", ref]).stdout.strip()
+
+
+def describe_divergence(repo: RepoSpec, ahead: int, behind: int) -> str:
+    local_sha = short_ref(repo, "HEAD")
+    remote_sha = short_ref(repo, f"origin/{MAIN_BRANCH}")
+    merge_base = run_git(repo, ["merge-base", "HEAD", f"origin/{MAIN_BRANCH}"], check=False)
+
+    if ahead > 0 and behind > 0:
+        if merge_base.returncode == 0:
+            reason = f"local and origin/{MAIN_BRANCH} diverged after merge base {merge_base.stdout.strip()[:12]}"
+        else:
+            reason = f"local and origin/{MAIN_BRANCH} have no merge base; upstream was likely force-updated or replaced"
+    elif ahead > 0:
+        reason = f"local branch has {ahead} commit(s) not on origin/{MAIN_BRANCH}"
+    else:
+        reason = f"local branch is {behind} commit(s) behind origin/{MAIN_BRANCH}"
+
+    hint = ""
+    if ahead > 0 and behind > 0:
+        hint = "; if this is a disposable clean upstream mirror, rerun with --reset-diverged-clean"
+
+    return (
+        f"{repo.name}: {reason}; local HEAD={local_sha}, "
+        f"origin/{MAIN_BRANCH}={remote_sha}, ahead={ahead}, behind={behind}; "
+        f"manual handling required{hint}"
+    )
+
+
 def validate_local_repo(repo: RepoSpec) -> None:
     if not repo.path.is_dir():
         raise SyncError(f"{repo.name}: missing repository directory: {repo.path}")
@@ -101,7 +132,7 @@ def validate_local_repo(repo: RepoSpec) -> None:
     require_clean_worktree(repo)
 
 
-def build_sync_plan(repo: RepoSpec) -> SyncPlan:
+def build_sync_plan(repo: RepoSpec, reset_diverged_clean: bool = False) -> SyncPlan:
     run_git(repo, ["fetch", "origin", MAIN_BRANCH])
 
     origin = run_git(repo, ["rev-parse", "--verify", f"origin/{MAIN_BRANCH}"], check=False)
@@ -110,12 +141,12 @@ def build_sync_plan(repo: RepoSpec) -> SyncPlan:
 
     ahead, behind = parse_counts(repo)
     if ahead > 0:
-        raise SyncError(
-            f"{repo.name}: local branch has {ahead} local commit(s) and is "
-            f"{behind} commit(s) behind origin/{MAIN_BRANCH}; manual handling required"
-        )
+        if reset_diverged_clean and behind > 0:
+            old_sha = short_ref(repo, "HEAD")
+            return SyncPlan(repo=repo, ahead=ahead, behind=behind, old_sha=old_sha, reset_to_origin=True)
+        raise SyncError(describe_divergence(repo, ahead, behind))
 
-    old_sha = run_git(repo, ["rev-parse", "--short=12", "HEAD"]).stdout.strip()
+    old_sha = short_ref(repo, "HEAD")
     return SyncPlan(repo=repo, ahead=ahead, behind=behind, old_sha=old_sha)
 
 
@@ -128,8 +159,13 @@ def apply_plan(plan: SyncPlan) -> str:
     if plan.behind == 0:
         return f"{plan.repo.name}: already up to date ({plan.old_sha})"
 
+    if plan.reset_to_origin:
+        run_git(plan.repo, ["reset", "--hard", f"origin/{MAIN_BRANCH}"])
+        new_sha = short_ref(plan.repo, "HEAD")
+        return f"{plan.repo.name}: reset clean diverged mirror {plan.old_sha}..{new_sha}"
+
     run_git(plan.repo, ["merge", "--ff-only", f"origin/{MAIN_BRANCH}"])
-    new_sha = run_git(plan.repo, ["rev-parse", "--short=12", "HEAD"]).stdout.strip()
+    new_sha = short_ref(plan.repo, "HEAD")
     return f"{plan.repo.name}: updated {plan.old_sha}..{new_sha}"
 
 
@@ -150,7 +186,7 @@ def repo_specs() -> list[RepoSpec]:
     ]
 
 
-def run_sync(repos: list[RepoSpec]) -> int:
+def run_sync(repos: list[RepoSpec], reset_diverged_clean: bool = False) -> int:
     local_errors: list[str] = []
     for repo in repos:
         try:
@@ -168,7 +204,7 @@ def run_sync(repos: list[RepoSpec]) -> int:
     fetch_errors: list[str] = []
     for repo in repos:
         try:
-            plans.append(build_sync_plan(repo))
+            plans.append(build_sync_plan(repo, reset_diverged_clean=reset_diverged_clean))
         except SyncError as exc:
             fetch_errors.append(str(exc))
 
@@ -266,11 +302,18 @@ def run_self_test() -> int:
         (seed / "file.txt").write_text("remote\n", encoding="utf-8")
         run_fixture_git(seed, ["commit", "-am", "remote"])
         run_fixture_git(seed, ["push", "origin", MAIN_BRANCH])
-        assert_raises("local branch has", lambda: build_sync_plan(repo))
+        assert_raises("manual handling required", lambda: build_sync_plan(repo))
         ahead, behind = parse_counts(repo)
         if ahead <= 0 or behind <= 0:
             raise SyncError(f"fixture: expected diverged history, got ahead={ahead} behind={behind}")
         print("self-test diverged-history block: ok")
+
+        plan = build_sync_plan(repo, reset_diverged_clean=True)
+        if not plan.reset_to_origin:
+            raise SyncError("fixture: expected reset plan for clean diverged history")
+        apply_plan(plan)
+        verify_synced(repo)
+        print("self-test reset-diverged-clean: ok")
 
         wrong_origin = RepoSpec("fixture", local, "https://example.invalid/repo.git")
         assert_raises("expected origin", lambda: validate_local_repo(wrong_origin))
@@ -292,6 +335,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="run temporary fixture tests without touching the real repositories",
     )
+    parser.add_argument(
+        "--reset-diverged-clean",
+        action="store_true",
+        help="reset a clean diverged upstream mirror to origin/main instead of blocking",
+    )
     return parser.parse_args()
 
 
@@ -301,7 +349,7 @@ def main() -> int:
         return run_self_test()
 
     repos = repo_specs()
-    return run_sync(repos)
+    return run_sync(repos, reset_diverged_clean=args.reset_diverged_clean)
 
 
 if __name__ == "__main__":
