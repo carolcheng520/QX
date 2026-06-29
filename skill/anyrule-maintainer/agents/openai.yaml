@@ -1,0 +1,4 @@
+interface:
+  display_name: "AnyRule Maintainer"
+  short_description: "Update and publish Anywhere rule repos"
+  default_prompt: "Use $anyrule-maintainer to run the guarded periodic AnyRule maintenance workflow."
