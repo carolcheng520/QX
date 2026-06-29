@@ -8,25 +8,18 @@ import hashlib
 import ipaddress
 import sqlite3
 import sys
-import urllib.request
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
 
+sys.dont_write_bytecode = True
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES_DB = REPO_ROOT.parent / "Anywhere" / "Shared" / "DataStore" / "Rules.db"
-
-GEOSITE_URL = (
-    "https://raw.githubusercontent.com/chikacya/anywhere-rules/"
-    "refs/heads/main/rules/common/Geosite_CN.arrs"
-)
-GEOIP_URL = (
-    "https://raw.githubusercontent.com/chikacya/anywhere-rules/"
-    "refs/heads/main/rules/common/GeoIP_CN.arrs"
-)
-LAN_URL = "https://raw.githubusercontent.com/chikacya/anywhere-rules/main/rules/common/Lan.arrs"
+DEFAULT_ANYWHERE_RULES_ROOT = REPO_ROOT.parent / "anywhere-rules"
+ANYRULE_RULES_ROOT = REPO_ROOT / "rules"
 
 GEOSITE_OUTPUT = REPO_ROOT / "rules" / "geosite-cn-direct-delta.arrs"
 GEOIP_OUTPUT = REPO_ROOT / "rules" / "geoip-cn-ipv6.arrs"
@@ -39,6 +32,10 @@ GEOIP_RAW_LINK = (
     "rules/geoip-cn-ipv6.arrs"
 )
 
+GEOSITE_SOURCE_NAME = "Geosite_CN.arrs"
+GEOIP_SOURCE_NAME = "GeoIP_CN.arrs"
+LAN_SOURCE_NAME = "Lan.arrs"
+
 DIRECT_BASELINE_FILES = [
     "wechat.arrs",
     "10086.arrs",
@@ -48,24 +45,45 @@ DIRECT_BASELINE_FILES = [
     "direct-app.arrs",
     "portfolio.arrs",
 ]
+MITM_REJECT_FILES = [
+    "AmapReject.arrs",
+    "BilibiliReject.arrs",
+    "WeiboReject.arrs",
+    "XiaohongshuReject.arrs",
+]
+LOCAL_REJECT_FILES = [
+    "wechat-ads.arrs",
+]
 
 
 @dataclass(frozen=True)
 class SourceText:
     text: str
     sha256: str
+    location: Path
+    label: str
+
+
+@dataclass(frozen=True)
+class RuleSources:
+    geosite: SourceText
+    geoip: SourceText
+    direct: list[tuple[str, SourceText]]
+    mitm_reject: list[tuple[str, SourceText]]
 
 
 Rule = tuple[int, str]
 
 
-def read_source(location: str) -> SourceText:
-    if location.startswith(("http://", "https://")):
-        with urllib.request.urlopen(location, timeout=30) as response:
-            data = response.read()
-    else:
-        data = Path(location).read_bytes()
-    return SourceText(data.decode("utf-8"), hashlib.sha256(data).hexdigest())
+def local_path_arg(value: str) -> Path:
+    if value.startswith(("http://", "https://")):
+        raise argparse.ArgumentTypeError("remote URLs are not supported; use a local file path")
+    return Path(value).expanduser()
+
+
+def read_source(location: Path, label: str) -> SourceText:
+    data = location.read_bytes()
+    return SourceText(data.decode("utf-8"), hashlib.sha256(data).hexdigest(), location, label)
 
 
 def canonical_domain(value: str) -> str:
@@ -133,20 +151,127 @@ def domain_is_covered(domain: str, suffixes: set[str]) -> bool:
     return any(".".join(labels[index:]) in suffixes for index in range(len(labels)))
 
 
-def direct_baseline_sources(lan_source: str) -> list[tuple[str, str]]:
-    sources: list[tuple[str, str]] = []
+def domain_has_suffix(domain: str, suffix: str) -> bool:
+    return domain == suffix or domain.endswith("." + suffix)
+
+
+def domain_conflicts_with_suffixes(domain: str, suffixes: set[str]) -> bool:
+    return any(
+        domain_has_suffix(domain, suffix) or domain_has_suffix(suffix, domain)
+        for suffix in suffixes
+    )
+
+
+def default_geosite_source(anywhere_rules_root: Path) -> Path:
+    return anywhere_rules_root / "rules" / "common" / GEOSITE_SOURCE_NAME
+
+
+def default_geoip_source(anywhere_rules_root: Path) -> Path:
+    return anywhere_rules_root / "rules" / "common" / GEOIP_SOURCE_NAME
+
+
+def default_lan_source(anywhere_rules_root: Path) -> Path:
+    return anywhere_rules_root / "rules" / "common" / LAN_SOURCE_NAME
+
+
+def direct_baseline_sources(lan_source: Path) -> list[tuple[str, Path]]:
+    sources: list[tuple[str, Path]] = []
     for filename in DIRECT_BASELINE_FILES:
-        sources.append((filename, str(REPO_ROOT / "rules" / filename)))
+        sources.append((filename, ANYRULE_RULES_ROOT / filename))
     sources.insert(1, ("Lan.arrs", lan_source))
     return sources
 
 
-def load_direct_baseline_rules(lan_source: str) -> list[Rule]:
+def mitm_reject_sources(anywhere_rules_root: Path) -> list[tuple[str, Path]]:
+    sources = [
+        (filename, anywhere_rules_root / "mitm" / filename)
+        for filename in MITM_REJECT_FILES
+    ]
+    sources.extend(
+        (filename, ANYRULE_RULES_ROOT / filename)
+        for filename in LOCAL_REJECT_FILES
+    )
+    return sources
+
+
+def require_sources(paths: list[tuple[str, Path]]) -> None:
+    remote = [
+        (name, path)
+        for name, path in paths
+        if str(path).startswith(("http:/", "https:/"))
+    ]
+    if remote:
+        details = "\n".join(f"- {name}: {path}" for name, path in remote)
+        raise SystemExit("Remote input source(s) are not supported:\n" + details)
+
+    missing = [(name, path) for name, path in paths if not path.is_file()]
+    if not missing:
+        return
+    details = "\n".join(f"- {name}: {path}" for name, path in missing)
+    raise SystemExit("Missing input source file(s):\n" + details)
+
+
+def load_inputs(args: argparse.Namespace) -> RuleSources:
+    anywhere_rules_root = args.anywhere_rules_root
+    geosite_source = args.geosite_source or default_geosite_source(anywhere_rules_root)
+    geoip_source = args.geoip_source or default_geoip_source(anywhere_rules_root)
+    lan_source = args.lan_source or default_lan_source(anywhere_rules_root)
+    direct_paths = direct_baseline_sources(lan_source)
+    mitm_reject_paths = mitm_reject_sources(anywhere_rules_root)
+    require_sources(
+        [(GEOSITE_SOURCE_NAME, geosite_source), (GEOIP_SOURCE_NAME, geoip_source)]
+        + direct_paths
+        + mitm_reject_paths
+    )
+    direct_sources = [
+        (
+            name,
+            read_source(
+                location,
+                f"anywhere-rules/rules/common/{name}"
+                if name == LAN_SOURCE_NAME
+                else f"anyrule/rules/{name}",
+            ),
+        )
+        for name, location in direct_paths
+    ]
+    mitm_reject_source_texts = [
+        (
+            name,
+            read_source(
+                location,
+                f"anyrule/rules/{name}"
+                if name in LOCAL_REJECT_FILES
+                else f"anywhere-rules/mitm/{name}",
+            ),
+        )
+        for name, location in mitm_reject_paths
+    ]
+    return RuleSources(
+        geosite=read_source(geosite_source, f"anywhere-rules/rules/common/{GEOSITE_SOURCE_NAME}"),
+        geoip=read_source(geoip_source, f"anywhere-rules/rules/common/{GEOIP_SOURCE_NAME}"),
+        direct=direct_sources,
+        mitm_reject=mitm_reject_source_texts,
+    )
+
+
+def load_direct_baseline_rules(sources: list[tuple[str, SourceText]]) -> list[Rule]:
     rules: list[Rule] = []
-    for name, location in direct_baseline_sources(lan_source):
-        source = read_source(location)
+    for name, source in sources:
         rules.extend(parse_arrs(source.text, name))
     return rules
+
+
+def load_mitm_reject_rules(sources: list[tuple[str, SourceText]]) -> tuple[list[Rule], Counter[str]]:
+    rules: list[Rule] = []
+    skipped: Counter[str] = Counter()
+    for name, source in sources:
+        for rule_type, value in parse_arrs(source.text, name):
+            if rule_type == 2:
+                rules.append((rule_type, value))
+            else:
+                skipped[f"mitm-reject-type{rule_type}"] += 1
+    return dedupe_preserving_order(rules), skipped
 
 
 def dedupe_preserving_order(rules: list[Rule]) -> list[Rule]:
@@ -165,11 +290,15 @@ def generate_geosite_delta(
     builtin_cn_rules: list[Rule],
     direct_rules: list[Rule],
     adblock_rules: list[Rule],
+    mitm_reject_rules: list[Rule],
 ) -> tuple[list[Rule], Counter[str]]:
     baseline_suffixes = {
         value for rule_type, value in builtin_cn_rules + direct_rules if rule_type == 2
     }
     adblock_suffixes = {value for rule_type, value in adblock_rules if rule_type == 2}
+    mitm_reject_suffixes = {
+        value for rule_type, value in mitm_reject_rules if rule_type == 2
+    }
 
     output: list[Rule] = []
     skipped: Counter[str] = Counter()
@@ -182,6 +311,9 @@ def generate_geosite_delta(
             continue
         if domain_is_covered(value, adblock_suffixes):
             skipped["adblock-covered"] += 1
+            continue
+        if domain_conflicts_with_suffixes(value, mitm_reject_suffixes):
+            skipped["mitm-reject-covered"] += 1
             continue
         output.append((rule_type, value))
 
@@ -199,26 +331,41 @@ def generate_geoip_ipv6(geoip_rules: list[Rule]) -> tuple[list[Rule], Counter[st
     return dedupe_preserving_order(output), skipped
 
 
+def output_last_updated(path: Path, rules: list[Rule]) -> str:
+    if path.exists():
+        text = path.read_text(encoding="utf-8")
+        if parse_arrs(text, str(path)) == rules:
+            for line in text.splitlines():
+                prefix = "# LAST-UPDATED: "
+                if line.startswith(prefix):
+                    return line.removeprefix(prefix).strip()
+    return date.today().isoformat()
+
+
 def render_rule_file(
     *,
     purpose: str,
     raw_link: str,
+    last_updated: str,
     name: str,
     rules: list[Rule],
-    source_url: str,
+    source_label: str,
     source_sha256: str,
     skipped: Counter[str],
+    extra_header_lines: list[str] | None = None,
 ) -> str:
     skipped_text = ", ".join(f"{key}={value}" for key, value in sorted(skipped.items()))
+    extra_header = "".join(f"{line}\n" for line in extra_header_lines or [])
     body = "\n".join(f"{rule_type}, {value}" for rule_type, value in rules)
     return (
         f"# PURPOSE: {purpose}\n"
         f"# LINK: {raw_link}\n"
-        f"# LAST-UPDATED: {date.today().isoformat()}\n"
+        f"# LAST-UPDATED: {last_updated}\n"
         "# SUGGESTED-ACTION: DIRECT\n"
         f"# RULES: {len(rules)}\n"
-        f"# SOURCE: {source_url}\n"
+        f"# SOURCE: {source_label}\n"
         f"# SOURCE-SHA256: {source_sha256}\n"
+        f"{extra_header}"
         f"# GENERATED-BY: scripts/generate_cn_direct_enhancements.py\n"
         f"# SKIPPED: {skipped_text or 'none'}\n"
         "\n"
@@ -232,6 +379,7 @@ def validate_geosite_delta(
     builtin_cn_rules: list[Rule],
     direct_rules: list[Rule],
     adblock_rules: list[Rule],
+    mitm_reject_rules: list[Rule],
 ) -> None:
     if any(rule_type != 2 for rule_type, _ in rules):
         raise SystemExit("Geosite delta contains a non-domain-suffix rule")
@@ -240,6 +388,9 @@ def validate_geosite_delta(
         value for rule_type, value in builtin_cn_rules + direct_rules if rule_type == 2
     }
     adblock_suffixes = {value for rule_type, value in adblock_rules if rule_type == 2}
+    mitm_reject_suffixes = {
+        value for rule_type, value in mitm_reject_rules if rule_type == 2
+    }
 
     baseline_hits = [
         value for _, value in rules if domain_is_covered(value, baseline_suffixes)
@@ -247,10 +398,15 @@ def validate_geosite_delta(
     adblock_hits = [
         value for _, value in rules if domain_is_covered(value, adblock_suffixes)
     ]
+    mitm_reject_hits = [
+        value for _, value in rules if domain_conflicts_with_suffixes(value, mitm_reject_suffixes)
+    ]
     if baseline_hits:
         raise SystemExit("Geosite delta still has baseline-covered domains: " + ", ".join(baseline_hits[:10]))
     if adblock_hits:
         raise SystemExit("Geosite delta still has ADBlock-covered domains: " + ", ".join(adblock_hits[:10]))
+    if mitm_reject_hits:
+        raise SystemExit("Geosite delta still conflicts with MITM reject domains: " + ", ".join(mitm_reject_hits[:10]))
 
 
 def validate_geoip_ipv6(rules: list[Rule]) -> None:
@@ -260,17 +416,21 @@ def validate_geoip_ipv6(rules: list[Rule]) -> None:
         ipaddress.IPv6Network(value, strict=False)
 
 
-def write_output(path: Path, text: str) -> None:
+def write_output(path: Path, text: str) -> bool:
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        return False
     path.write_text(text, encoding="utf-8")
+    return True
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rules-db", type=Path, default=DEFAULT_RULES_DB)
-    parser.add_argument("--geosite-source", default=GEOSITE_URL)
-    parser.add_argument("--geoip-source", default=GEOIP_URL)
-    parser.add_argument("--lan-source", default=LAN_URL)
-    return parser.parse_args()
+    parser.add_argument("--rules-db", type=local_path_arg, default=DEFAULT_RULES_DB)
+    parser.add_argument("--anywhere-rules-root", type=local_path_arg, default=DEFAULT_ANYWHERE_RULES_ROOT)
+    parser.add_argument("--geosite-source", type=local_path_arg)
+    parser.add_argument("--geoip-source", type=local_path_arg)
+    parser.add_argument("--lan-source", type=local_path_arg)
+    return parser.parse_args(argv)
 
 
 def main() -> int:
@@ -278,53 +438,71 @@ def main() -> int:
     if not args.rules_db.exists():
         raise SystemExit(f"Rules.db not found: {args.rules_db}")
 
-    geosite_source = read_source(args.geosite_source)
-    geoip_source = read_source(args.geoip_source)
+    sources = load_inputs(args)
 
     builtin_cn_rules = load_db_rules(args.rules_db, "CN")
     adblock_rules = load_db_rules(args.rules_db, "ADBlock")
-    direct_rules = load_direct_baseline_rules(args.lan_source)
-    geosite_rules = parse_arrs(geosite_source.text, args.geosite_source)
-    geoip_rules = parse_arrs(geoip_source.text, args.geoip_source)
+    direct_rules = load_direct_baseline_rules(sources.direct)
+    mitm_reject_rules, mitm_reject_skipped = load_mitm_reject_rules(sources.mitm_reject)
+    geosite_rules = parse_arrs(sources.geosite.text, sources.geosite.label)
+    geoip_rules = parse_arrs(sources.geoip.text, sources.geoip.label)
 
     geosite_delta, geosite_skipped = generate_geosite_delta(
         geosite_rules,
         builtin_cn_rules,
         direct_rules,
         adblock_rules,
+        mitm_reject_rules,
     )
+    geosite_skipped.update(mitm_reject_skipped)
     geoip_ipv6, geoip_skipped = generate_geoip_ipv6(geoip_rules)
 
-    validate_geosite_delta(geosite_delta, builtin_cn_rules, direct_rules, adblock_rules)
+    validate_geosite_delta(
+        geosite_delta,
+        builtin_cn_rules,
+        direct_rules,
+        adblock_rules,
+        mitm_reject_rules,
+    )
     validate_geoip_ipv6(geoip_ipv6)
 
     geosite_text = render_rule_file(
-        purpose="Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, or ADBlock.",
+        purpose="Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, ADBlock, or MITM reject routing rules.",
         raw_link=GEOSITE_RAW_LINK,
+        last_updated=output_last_updated(GEOSITE_OUTPUT, geosite_delta),
         name="Geosite CN Direct Delta",
         rules=geosite_delta,
-        source_url=GEOSITE_URL,
-        source_sha256=geosite_source.sha256,
+        source_label=sources.geosite.label,
+        source_sha256=sources.geosite.sha256,
         skipped=geosite_skipped,
+        extra_header_lines=[
+            "# EXCLUDED-REJECT-SOURCES:",
+            *[
+                f"# - {name}: {source.label}"
+                for name, source in sources.mitm_reject
+            ],
+        ],
     )
     geoip_text = render_rule_file(
         purpose="China IPv6 direct-routing CIDR rules generated from GeoIP_CN.",
         raw_link=GEOIP_RAW_LINK,
+        last_updated=output_last_updated(GEOIP_OUTPUT, geoip_ipv6),
         name="GeoIP CN IPv6",
         rules=geoip_ipv6,
-        source_url=GEOIP_URL,
-        source_sha256=geoip_source.sha256,
+        source_label=sources.geoip.label,
+        source_sha256=sources.geoip.sha256,
         skipped=geoip_skipped,
     )
 
-    write_output(GEOSITE_OUTPUT, geosite_text)
-    write_output(GEOIP_OUTPUT, geoip_text)
+    wrote_geosite = write_output(GEOSITE_OUTPUT, geosite_text)
+    wrote_geoip = write_output(GEOIP_OUTPUT, geoip_text)
 
     geosite_counts = Counter(rule_type for rule_type, _ in geosite_delta)
     geoip_counts = Counter(rule_type for rule_type, _ in geoip_ipv6)
-    print(f"wrote {GEOSITE_OUTPUT}")
+    print(f"{'wrote' if wrote_geosite else 'unchanged'} {GEOSITE_OUTPUT}")
     print(f"geosite_rules={len(geosite_delta)} type2={geosite_counts[2]} skipped={dict(sorted(geosite_skipped.items()))}")
-    print(f"wrote {GEOIP_OUTPUT}")
+    print(f"mitm_reject_rules={len(mitm_reject_rules)} type2={Counter(rule_type for rule_type, _ in mitm_reject_rules)[2]}")
+    print(f"{'wrote' if wrote_geoip else 'unchanged'} {GEOIP_OUTPUT}")
     print(f"geoip_rules={len(geoip_ipv6)} type1={geoip_counts[1]} skipped={dict(sorted(geoip_skipped.items()))}")
     return 0
 

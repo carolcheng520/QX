@@ -3,7 +3,7 @@
 # LAST-UPDATED: 2026-06-28
 # SUGGESTED-ACTION: DIRECT
 # RULES: 1514
-# SOURCE: https://raw.githubusercontent.com/chikacya/anywhere-rules/refs/heads/main/rules/common/GeoIP_CN.arrs
+# SOURCE: anywhere-rules/rules/common/GeoIP_CN.arrs
 # SOURCE-SHA256: d19d745152c05580cc0e0c058492059b934fa280e432d1adcaaf1aee3bfdb5c7
 # GENERATED-BY: scripts/generate_cn_direct_enhancements.py
 # SKIPPED: type0=4380

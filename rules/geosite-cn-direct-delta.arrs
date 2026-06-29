@@ -1,10 +1,16 @@
-# PURPOSE: Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, or ADBlock.
+# PURPOSE: Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, ADBlock, or MITM reject routing rules.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/geosite-cn-direct-delta.arrs
-# LAST-UPDATED: 2026-06-28
+# LAST-UPDATED: 2026-06-29
 # SUGGESTED-ACTION: DIRECT
-# RULES: 3400
-# SOURCE: https://raw.githubusercontent.com/chikacya/anywhere-rules/refs/heads/main/rules/common/Geosite_CN.arrs
-# SOURCE-SHA256: b18af26293fc14a289e600352e1f47bc966c7835092675781d52c350f3a44275
+# RULES: 3415
+# SOURCE: anywhere-rules/rules/common/Geosite_CN.arrs
+# SOURCE-SHA256: 19f935ef5ee2bb4eb589051cddab72987268e0f12ed70c2ca6aa32ad76d0e1db
+# EXCLUDED-REJECT-SOURCES:
+# - AmapReject.arrs: anywhere-rules/mitm/AmapReject.arrs
+# - BilibiliReject.arrs: anywhere-rules/mitm/BilibiliReject.arrs
+# - WeiboReject.arrs: anywhere-rules/mitm/WeiboReject.arrs
+# - XiaohongshuReject.arrs: anywhere-rules/mitm/XiaohongshuReject.arrs
+# - wechat-ads.arrs: anyrule/rules/wechat-ads.arrs
 # GENERATED-BY: scripts/generate_cn_direct_enhancements.py
 # SKIPPED: adblock-covered=2, baseline-covered=1391
 
@@ -235,6 +241,7 @@ name = Geosite CN Direct Delta
 2, 714.com
 2, 71acg.com
 2, 71acg.net
+2, 71shi.net
 2, 7230.com
 2, 72byte.com
 2, 72whys.com
@@ -255,6 +262,7 @@ name = Geosite CN Direct Delta
 2, 885.com
 2, 88cdn.com
 2, 8btc.com
+2, 8m2.net
 2, 900.la
 2, 900cha.com
 2, 917.com
@@ -298,7 +306,6 @@ name = Geosite CN Direct Delta
 2, acfun.net
 2, acfunchina.com
 2, acfunchina.net
-2, acplay.net
 2, activity-wbsj.com
 2, activity-zhendingtech.com
 2, acwifi.net
@@ -358,6 +365,7 @@ name = Geosite CN Direct Delta
 2, anfensi.com
 2, anhuinews.com
 2, anhuiyun.com
+2, anixplayer.net
 2, anjukestatic.com
 2, anlaiye.com
 2, anmo.com
@@ -460,7 +468,6 @@ name = Geosite CN Direct Delta
 2, bdcat.top
 2, bdcloudapi.com
 2, bdmozon.com
-2, bdmyandex.com
 2, bdtjrcv.com
 2, bdycdn.net
 2, bdydns.net
@@ -679,6 +686,7 @@ name = Geosite CN Direct Delta
 2, cibn.cc
 2, cicc.com
 2, ciccwm.com
+2, cilisouou.com
 2, cindasc.com
 2, city8.com
 2, ciweimao.com
@@ -823,7 +831,6 @@ name = Geosite CN Direct Delta
 2, dajieimg.com
 2, dalongyun.com
 2, dandan818.com
-2, dandanplay.com
 2, dandanvoice.com
 2, dangbei.com
 2, dangbei.net
@@ -938,6 +945,7 @@ name = Geosite CN Direct Delta
 2, duba.com
 2, dui.ai
 2, dui88.com
+2, duifene.com
 2, duiopen.com
 2, duitang.com
 2, duoduocdn.com
@@ -1255,6 +1263,7 @@ name = Geosite CN Direct Delta
 2, golue.com
 2, gongxiangcj.com
 2, gongxiangjizhang.com
+2, goodq.top
 2, goofish.pro
 2, goosail.com
 2, goproxy.io
@@ -1288,6 +1297,7 @@ name = Geosite CN Direct Delta
 2, guazi.net
 2, guazistatic.com
 2, gucheng.com
+2, gugudata.com
 2, guigu.org
 2, guodu.com
 2, guokr.com
@@ -1340,6 +1350,7 @@ name = Geosite CN Direct Delta
 2, haoso.com
 2, haosou.net
 2, haote.com
+2, haowenti.net
 2, haoyouyinxiang.com
 2, hapjs.org
 2, happyhlddz.com
@@ -1612,6 +1623,7 @@ name = Geosite CN Direct Delta
 2, jet-ego.com
 2, jet-logistics.com
 2, jetlogistic.com
+2, jfcoop.com
 2, jfdaily.com
 2, jia.com
 2, jiameng.com
@@ -1632,6 +1644,7 @@ name = Geosite CN Direct Delta
 2, jiazhao.com
 2, jibencaozuo.com
 2, jiemeng8.com
+2, jigecili.com
 2, jike.city
 2, jikecdn.com
 2, jikeiot.cloud
@@ -2114,6 +2127,7 @@ name = Geosite CN Direct Delta
 2, mipcdn.com
 2, miraclevision.com
 2, mirrors.yun-idc.com
+2, misaka-net.top
 2, miusi.co
 2, miyatech.com
 2, mjia.cc
@@ -2134,6 +2148,7 @@ name = Geosite CN Direct Delta
 2, mojidict.com
 2, mokahr.com
 2, moleecel.com
+2, moliranran.com
 2, monika.love
 2, moocollege.com
 2, moonshot.ai
@@ -2248,6 +2263,7 @@ name = Geosite CN Direct Delta
 2, obricclouddw.com
 2, oceancloudapi.com
 2, oeeee.com
+2, oend.net
 2, offcn.com
 2, officese.com
 2, ofweek.com
@@ -2320,6 +2336,7 @@ name = Geosite CN Direct Delta
 2, pixeldance.com
 2, pkulaw.com
 2, playcool.com
+2, pljzy.top
 2, pmphmooc.com
 2, podcast.xyz
 2, polyv.net
@@ -2329,7 +2346,6 @@ name = Geosite CN Direct Delta
 2, proximabeta.com
 2, pubghelper.com
 2, pubgtool.com
-2, puddingcat.top
 2, pupuapi.com
 2, pupumall.com
 2, pushcfg.com
@@ -2381,6 +2397,7 @@ name = Geosite CN Direct Delta
 2, qingsongchou.com
 2, qingstor.com
 2, qingting.fm
+2, qingtingai.net
 2, qiniucdn.com
 2, qiniudn.com
 2, qiniudns.com
@@ -2417,6 +2434,7 @@ name = Geosite CN Direct Delta
 2, quyaoya.com
 2, qweather.com
 2, qweather.net
+2, qweatherapi.com
 2, qwen.ai
 2, qwenlm.ai
 2, qzhuye.com
@@ -2725,6 +2743,7 @@ name = Geosite CN Direct Delta
 2, thunderurl.com
 2, tiancity.com
 2, tiancitycdn.com
+2, tianhw.top
 2, tianjimedia.com
 2, tianjin-air.com
 2, tianlailive.com
@@ -2765,7 +2784,6 @@ name = Geosite CN Direct Delta
 2, to8to.com
 2, tobosu.com
 2, todesk.com
-2, tokcoder.com
 2, tom.com
 2, tongdun.net
 2, tongfangpc.com
@@ -2907,6 +2925,7 @@ name = Geosite CN Direct Delta
 2, vrzwk.net
 2, vrzwk.top
 2, vsread.com
+2, vtdd.vip
 2, vzuu.com
 2, waifushangcheng.com
 2, wallstcn.com
@@ -3006,6 +3025,7 @@ name = Geosite CN Direct Delta
 2, wsdvs.com
 2, wsglb.com
 2, wsglb.net
+2, wsjqnmmrmv.world
 2, wsoso.com
 2, wss.cc
 2, wss.email
@@ -3308,6 +3328,7 @@ name = Geosite CN Direct Delta
 2, zgbk.com
 2, zgcbank.com
 2, zggqzp.com
+2, zggx100.com
 2, zgjm.org
 2, zgjsks.com
 2, zgjtb.com
