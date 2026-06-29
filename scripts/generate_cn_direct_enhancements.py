@@ -72,6 +72,33 @@ class RuleSources:
     mitm_reject: list[tuple[str, SourceText]]
 
 
+@dataclass(frozen=True)
+class RuleContext:
+    sources: RuleSources
+    builtin_cn_rules: list[Rule]
+    adblock_rules: list[Rule]
+    direct_rules: list[Rule]
+    mitm_reject_rules: list[Rule]
+    mitm_reject_skipped: Counter[str]
+    geosite_rules: list[Rule]
+    geoip_rules: list[Rule]
+
+
+@dataclass(frozen=True)
+class GeneratedFile:
+    path: Path
+    text: str
+    rules: list[Rule]
+    skipped: Counter[str]
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    geosite: GeneratedFile
+    geoip: GeneratedFile
+    mitm_reject_rules: list[Rule]
+
+
 Rule = tuple[int, str]
 
 
@@ -423,6 +450,107 @@ def write_output(path: Path, text: str) -> bool:
     return True
 
 
+def load_rule_context(args: argparse.Namespace) -> RuleContext:
+    if not args.rules_db.exists():
+        raise SystemExit(f"Rules.db not found: {args.rules_db}")
+
+    sources = load_inputs(args)
+    direct_rules = load_direct_baseline_rules(sources.direct)
+    mitm_reject_rules, mitm_reject_skipped = load_mitm_reject_rules(sources.mitm_reject)
+    return RuleContext(
+        sources=sources,
+        builtin_cn_rules=load_db_rules(args.rules_db, "CN"),
+        adblock_rules=load_db_rules(args.rules_db, "ADBlock"),
+        direct_rules=direct_rules,
+        mitm_reject_rules=mitm_reject_rules,
+        mitm_reject_skipped=mitm_reject_skipped,
+        geosite_rules=parse_arrs(sources.geosite.text, sources.geosite.label),
+        geoip_rules=parse_arrs(sources.geoip.text, sources.geoip.label),
+    )
+
+
+def build_generation_result(context: RuleContext) -> GenerationResult:
+    geosite_delta, geosite_skipped = generate_geosite_delta(
+        context.geosite_rules,
+        context.builtin_cn_rules,
+        context.direct_rules,
+        context.adblock_rules,
+        context.mitm_reject_rules,
+    )
+    geosite_skipped.update(context.mitm_reject_skipped)
+    geoip_ipv6, geoip_skipped = generate_geoip_ipv6(context.geoip_rules)
+
+    validate_geosite_delta(
+        geosite_delta,
+        context.builtin_cn_rules,
+        context.direct_rules,
+        context.adblock_rules,
+        context.mitm_reject_rules,
+    )
+    validate_geoip_ipv6(geoip_ipv6)
+
+    geosite_text = render_rule_file(
+        purpose="Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, ADBlock, or MITM reject routing rules.",
+        raw_link=GEOSITE_RAW_LINK,
+        last_updated=output_last_updated(GEOSITE_OUTPUT, geosite_delta),
+        name="Geosite CN Direct Delta",
+        rules=geosite_delta,
+        source_label=context.sources.geosite.label,
+        source_sha256=context.sources.geosite.sha256,
+        skipped=geosite_skipped,
+        extra_header_lines=[
+            "# EXCLUDED-REJECT-SOURCES:",
+            *[
+                f"# - {name}: {source.label}"
+                for name, source in context.sources.mitm_reject
+            ],
+        ],
+    )
+    geoip_text = render_rule_file(
+        purpose="China IPv6 direct-routing CIDR rules generated from GeoIP_CN.",
+        raw_link=GEOIP_RAW_LINK,
+        last_updated=output_last_updated(GEOIP_OUTPUT, geoip_ipv6),
+        name="GeoIP CN IPv6",
+        rules=geoip_ipv6,
+        source_label=context.sources.geoip.label,
+        source_sha256=context.sources.geoip.sha256,
+        skipped=geoip_skipped,
+    )
+    return GenerationResult(
+        geosite=GeneratedFile(GEOSITE_OUTPUT, geosite_text, geosite_delta, geosite_skipped),
+        geoip=GeneratedFile(GEOIP_OUTPUT, geoip_text, geoip_ipv6, geoip_skipped),
+        mitm_reject_rules=context.mitm_reject_rules,
+    )
+
+
+def write_generation_result(result: GenerationResult) -> tuple[bool, bool]:
+    return (
+        write_output(result.geosite.path, result.geosite.text),
+        write_output(result.geoip.path, result.geoip.text),
+    )
+
+
+def print_summary(result: GenerationResult, wrote_geosite: bool, wrote_geoip: bool) -> None:
+    geosite_counts = Counter(rule_type for rule_type, _ in result.geosite.rules)
+    geoip_counts = Counter(rule_type for rule_type, _ in result.geoip.rules)
+    print(f"{'wrote' if wrote_geosite else 'unchanged'} {result.geosite.path}")
+    print(
+        f"geosite_rules={len(result.geosite.rules)} "
+        f"type2={geosite_counts[2]} "
+        f"skipped={dict(sorted(result.geosite.skipped.items()))}"
+    )
+    print(
+        f"mitm_reject_rules={len(result.mitm_reject_rules)} "
+        f"type2={Counter(rule_type for rule_type, _ in result.mitm_reject_rules)[2]}"
+    )
+    print(f"{'wrote' if wrote_geoip else 'unchanged'} {result.geoip.path}")
+    print(
+        f"geoip_rules={len(result.geoip.rules)} "
+        f"type1={geoip_counts[1]} "
+        f"skipped={dict(sorted(result.geoip.skipped.items()))}"
+    )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rules-db", type=local_path_arg, default=DEFAULT_RULES_DB)
@@ -435,75 +563,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if not args.rules_db.exists():
-        raise SystemExit(f"Rules.db not found: {args.rules_db}")
-
-    sources = load_inputs(args)
-
-    builtin_cn_rules = load_db_rules(args.rules_db, "CN")
-    adblock_rules = load_db_rules(args.rules_db, "ADBlock")
-    direct_rules = load_direct_baseline_rules(sources.direct)
-    mitm_reject_rules, mitm_reject_skipped = load_mitm_reject_rules(sources.mitm_reject)
-    geosite_rules = parse_arrs(sources.geosite.text, sources.geosite.label)
-    geoip_rules = parse_arrs(sources.geoip.text, sources.geoip.label)
-
-    geosite_delta, geosite_skipped = generate_geosite_delta(
-        geosite_rules,
-        builtin_cn_rules,
-        direct_rules,
-        adblock_rules,
-        mitm_reject_rules,
-    )
-    geosite_skipped.update(mitm_reject_skipped)
-    geoip_ipv6, geoip_skipped = generate_geoip_ipv6(geoip_rules)
-
-    validate_geosite_delta(
-        geosite_delta,
-        builtin_cn_rules,
-        direct_rules,
-        adblock_rules,
-        mitm_reject_rules,
-    )
-    validate_geoip_ipv6(geoip_ipv6)
-
-    geosite_text = render_rule_file(
-        purpose="Filtered China geosite direct-routing delta not covered by built-in CN, existing direct rules, ADBlock, or MITM reject routing rules.",
-        raw_link=GEOSITE_RAW_LINK,
-        last_updated=output_last_updated(GEOSITE_OUTPUT, geosite_delta),
-        name="Geosite CN Direct Delta",
-        rules=geosite_delta,
-        source_label=sources.geosite.label,
-        source_sha256=sources.geosite.sha256,
-        skipped=geosite_skipped,
-        extra_header_lines=[
-            "# EXCLUDED-REJECT-SOURCES:",
-            *[
-                f"# - {name}: {source.label}"
-                for name, source in sources.mitm_reject
-            ],
-        ],
-    )
-    geoip_text = render_rule_file(
-        purpose="China IPv6 direct-routing CIDR rules generated from GeoIP_CN.",
-        raw_link=GEOIP_RAW_LINK,
-        last_updated=output_last_updated(GEOIP_OUTPUT, geoip_ipv6),
-        name="GeoIP CN IPv6",
-        rules=geoip_ipv6,
-        source_label=sources.geoip.label,
-        source_sha256=sources.geoip.sha256,
-        skipped=geoip_skipped,
-    )
-
-    wrote_geosite = write_output(GEOSITE_OUTPUT, geosite_text)
-    wrote_geoip = write_output(GEOIP_OUTPUT, geoip_text)
-
-    geosite_counts = Counter(rule_type for rule_type, _ in geosite_delta)
-    geoip_counts = Counter(rule_type for rule_type, _ in geoip_ipv6)
-    print(f"{'wrote' if wrote_geosite else 'unchanged'} {GEOSITE_OUTPUT}")
-    print(f"geosite_rules={len(geosite_delta)} type2={geosite_counts[2]} skipped={dict(sorted(geosite_skipped.items()))}")
-    print(f"mitm_reject_rules={len(mitm_reject_rules)} type2={Counter(rule_type for rule_type, _ in mitm_reject_rules)[2]}")
-    print(f"{'wrote' if wrote_geoip else 'unchanged'} {GEOIP_OUTPUT}")
-    print(f"geoip_rules={len(geoip_ipv6)} type1={geoip_counts[1]} skipped={dict(sorted(geoip_skipped.items()))}")
+    result = build_generation_result(load_rule_context(args))
+    wrote_geosite, wrote_geoip = write_generation_result(result)
+    print_summary(result, wrote_geosite, wrote_geoip)
     return 0
 
 
