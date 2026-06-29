@@ -1,12 +1,13 @@
 # PURPOSE: Direct routing rules for Bank of China chat, enterprise mobile, and required support services.
 # LINK: https://raw.githubusercontent.com/carolcheng520/anyrule/main/rules/bocchat.arrs
-# LAST-UPDATED: 2026-06-17
+# LAST-UPDATED: 2026-06-29
 # SUGGESTED-ACTION: DIRECT
-# RULES: 11
+# RULES: 12
 
 name = bocchat
 2, byod.semm.bank-of-china.com
-2, cdn1.emm.bank-of-china.com
+2, emm.bank-of-china.com
+2, etraining.bank-of-china.com
 2, iisp-oidea.mbs.boc.cn
 2, down-30005.sz.gfp.tencent-cloud.com
 2, down.qq.com
